@@ -99,5 +99,3 @@ public static class PostgreSqlPersistenceRegistration
     }
 }
 
-
-

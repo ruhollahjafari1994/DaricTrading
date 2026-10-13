@@ -36,4 +36,3 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
     }
 }
 
-

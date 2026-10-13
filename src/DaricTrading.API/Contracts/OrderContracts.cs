@@ -21,4 +21,3 @@ public sealed record WalletBalanceResponse(Guid UserId, decimal BalanceGrams)
     public static WalletBalanceResponse From(WalletBalanceDto balance) => new(balance.UserId, balance.BalanceGrams);
 }
 
-

@@ -108,4 +108,3 @@ namespace DaricTrading.Application.Wallets
     }
 }
 
-

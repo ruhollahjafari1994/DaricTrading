@@ -43,6 +43,3 @@ public sealed class UpdateOrderTagsCommandValidator : AbstractValidator<UpdateOr
     }
 }
 
-
-
-
