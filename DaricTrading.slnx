@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DaricTrading.API/DaricTrading.API.csproj" />
+    <Project Path="src/DaricTrading.Application/DaricTrading.Application.csproj" />
+    <Project Path="src/DaricTrading.Domain/DaricTrading.Domain.csproj" />
+    <Project Path="src/DaricTrading.Infrastructure/DaricTrading.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DaricTrading.API.IntegrationTests/DaricTrading.API.IntegrationTests.csproj" />
+    <Project Path="tests/DaricTrading.Domain.UnitTests/DaricTrading.Domain.UnitTests.csproj" />
+  </Folder>
+</Solution>
