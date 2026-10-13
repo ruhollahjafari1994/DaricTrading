@@ -18,3 +18,4 @@ USER app
 HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/health || exit 1
 ENTRYPOINT ["dotnet", "DaricTrading.API.dll"]
+
