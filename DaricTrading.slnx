@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DaricTrading.API.IntegrationTests/DaricTrading.API.IntegrationTests.csproj" />
+    <Project Path="tests/DaricTrading.Application.UnitTests/DaricTrading.Application.UnitTests.csproj" />
     <Project Path="tests/DaricTrading.Domain.UnitTests/DaricTrading.Domain.UnitTests.csproj" />
   </Folder>
 </Solution>
