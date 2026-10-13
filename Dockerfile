@@ -10,7 +10,6 @@ RUN dotnet publish src/DaricTrading.API/DaricTrading.API.csproj \
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS runtime
 WORKDIR /app
-RUN addgroup -S app && adduser -S -G app app
 COPY --from=build /app/publish .
 ENV ASPNETCORE_HTTP_PORTS=8080
 EXPOSE 8080
