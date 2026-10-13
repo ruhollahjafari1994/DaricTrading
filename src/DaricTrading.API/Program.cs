@@ -1,42 +1,44 @@
+using DaricTrading.API;
 using DaricTrading.API.Errors;
-using DaricTrading.Application.Orders;
-using DaricTrading.Application.Validation;
-using DaricTrading.Application.Wallets;
-using DaricTrading.Domain;
+using DaricTrading.Application;
 using DaricTrading.Infrastructure;
-using FluentValidation;
+using DaricTrading.Infrastructure.Persistence.PostgreSql;
 using Microsoft.AspNetCore.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddSingleton<IGoldOrderRepository, InMemoryGoldOrderRepository>();
-builder.Services.AddSingleton<IGoldWalletRepository, InMemoryGoldWalletRepository>();
-builder.Services.AddScoped<BuyOrderHandler>();
-builder.Services.AddScoped<SellOrderHandler>();
-builder.Services.AddScoped<GetOrderHandler>();
-builder.Services.AddScoped<SearchOrdersHandler>();
-builder.Services.AddScoped<UpdateOrderTagsHandler>();
-builder.Services.AddScoped<CancelOrderHandler>();
-builder.Services.AddScoped<WalletApplicationService>();
-builder.Services.AddScoped<IValidator<CreateOrderCommand>, CreateOrderCommandValidator>();
-builder.Services.AddScoped<IValidator<OrderSearchQuery>, OrderSearchQueryValidator>();
-builder.Services.AddScoped<IValidator<UpdateOrderTagsCommand>, UpdateOrderTagsCommandValidator>();
+var usePostgreSql = string.Equals(builder.Configuration["Persistence:Provider"], "PostgreSql", StringComparison.OrdinalIgnoreCase);
+if (usePostgreSql)
+{
+    var connectionString = builder.Configuration.GetConnectionString("Trading")
+        ?? throw new InvalidOperationException("ConnectionStrings:Trading is required for PostgreSQL persistence.");
+    builder.Services.AddPostgreSqlPersistence(connectionString);
+}
+else
+{
+    builder.Services.AddInMemoryTradingPersistence();
+}
+
+builder.Services.AddDaricTradingApplication();
+builder.Services.AddHealthChecks();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
     options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFile));
+    options.SchemaFilter<TradingExamplesSchemaFilter>();
 });
 
 var app = builder.Build();
+if (usePostgreSql) await app.Services.ApplyTradingMigrationsAsync();
 app.UseExceptionHandler();
 app.UseSwagger();
 app.UseSwaggerUI();
+app.MapHealthChecks("/health");
 app.MapControllers();
 app.Run();
 
 public partial class Program { }
-

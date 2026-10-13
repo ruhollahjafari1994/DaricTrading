@@ -1,5 +1,5 @@
 using DaricTrading.Application.Orders;
-using DaricTrading.Domain;
+using DaricTrading.Application.Common;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -18,7 +18,8 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "Request validation failed."),
             NotFoundException notFound => Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Resource not found.", detail: notFound.Message),
-            DomainRuleViolationException ruleViolation => Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "Business rule violation.", detail: ruleViolation.Message),
+            OptimisticConcurrencyException conflict => Results.Problem(statusCode: StatusCodes.Status409Conflict, title: "Concurrency conflict.", detail: conflict.Message),
+            BusinessRuleViolationException ruleViolation => Results.Problem(statusCode: StatusCodes.Status422UnprocessableEntity, title: "Business rule violation.", detail: ruleViolation.Message),
             _ => null
         };
 
@@ -34,3 +35,5 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         return true;
     }
 }
+
+

@@ -10,14 +10,14 @@ public sealed class CreateOrderCommandValidator : AbstractValidator<CreateOrderC
     {
         RuleFor(command => command.UserId).NotEmpty();
         RuleFor(command => command.WeightGrams).GreaterThan(0).Must(value => decimal.Round(value, 3) == value).WithMessage("Weight must be positive and have at most 3 decimal places.");
-        RuleFor(command => command.UnitPrice).GreaterThanOrEqualTo(0).Must(value => decimal.Round(value, 0) == value).WithMessage("Unit price must be a non-negative whole IRR amount.");
-        RuleFor(command => command.Fee).GreaterThanOrEqualTo(0).Must(value => decimal.Round(value, 0) == value).WithMessage("Fee must be a non-negative whole IRR amount.");
-        RuleForEach(command => command.Tags ?? Array.Empty<string>()).Must(IsAllowedTag).WithMessage("Tag is not supported.");
+        RuleFor(command => command.UnitPrice).GreaterThanOrEqualTo(0).Must(value => decimal.Round(value, 2) == value).WithMessage("Unit price must be a non-negative whole IRR amount.");
+        RuleFor(command => command.Fee).GreaterThanOrEqualTo(0).Must(value => decimal.Round(value, 2) == value).WithMessage("Fee must be a non-negative whole IRR amount.");
+        RuleForEach(command => command.Tags!).Must(IsAllowedTag).WithMessage("Tag is not supported.");
     }
     internal static bool IsAllowedTag(string value)
     {
         try { _ = new Tag(value); return true; }
-        catch (ArgumentException) { return false; }
+        catch (DomainRuleViolationException) { return false; }
     }
 }
 
@@ -42,4 +42,7 @@ public sealed class UpdateOrderTagsCommandValidator : AbstractValidator<UpdateOr
         RuleFor(command => command.Note).MaximumLength(500);
     }
 }
+
+
+
 

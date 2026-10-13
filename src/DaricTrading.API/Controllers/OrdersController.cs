@@ -70,7 +70,7 @@ public sealed class OrdersController(BuyOrderHandler buyOrder, SellOrderHandler 
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IReadOnlyList<OrderResponse>>> Search([FromQuery] SearchOrdersQueryParameters query, CancellationToken cancellationToken)
     {
-        var search = new OrderSearchQuery(query.UserId, query.Tag, query.From, query.To, query.Type);
+        var search = new OrderSearchQuery(query.UserId, query.Tag, query.From, query.To, query.OrderType);
         var result = await searchOrders.HandleAsync(search, cancellationToken);
         return Ok(result.Select(OrderResponse.From).ToArray());
     }
@@ -79,37 +79,40 @@ public sealed class OrdersController(BuyOrderHandler buyOrder, SellOrderHandler 
     /// <param name="id">The order identifier.</param>
     /// <param name="request">New tags and optional note.</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
-    /// <response code="200">The order metadata was updated.</response>
+    /// <response code="204">The order metadata was updated.</response>
     /// <response code="400">The request failed validation.</response>
     /// <response code="404">No order has the supplied identifier.</response>
     /// <response code="422">The order status does not allow metadata updates.</response>
     [HttpPatch("{id:guid}/tags")]
-    [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<OrderResponse>> UpdateTags(Guid id, UpdateOrderTagsRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateTags(Guid id, UpdateOrderTagsRequest request, CancellationToken cancellationToken)
     {
         var command = new UpdateOrderTagsCommand(id, request.Tags, request.Note);
-        var result = await updateOrderTags.HandleAsync(command, cancellationToken);
-        return Ok(OrderResponse.From(result));
+        await updateOrderTags.HandleAsync(command, cancellationToken);
+        return NoContent();
     }
 
     /// <summary>Cancels a pending order.</summary>
     /// <param name="id">The order identifier.</param>
     /// <param name="cancellationToken">Request cancellation token.</param>
-    /// <response code="200">The order was cancelled.</response>
+    /// <response code="204">The order was cancelled.</response>
     /// <response code="404">No order has the supplied identifier.</response>
     /// <response code="422">The order is not pending.</response>
     [HttpPost("{id:guid}/cancel")]
-    [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<OrderResponse>> Cancel(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
-        var order = await cancelOrder.HandleAsync(id, cancellationToken);
-        return Ok(OrderResponse.From(order));
+        await cancelOrder.HandleAsync(id, cancellationToken);
+        return NoContent();
     }
 }
+
+
+
 
 

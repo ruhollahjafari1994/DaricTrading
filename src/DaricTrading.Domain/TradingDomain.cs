@@ -10,7 +10,7 @@ public sealed record GoldPurchasedDomainEvent(Guid OrderId, Guid UserId, GoldWei
 public sealed record GoldSoldDomainEvent(Guid OrderId, Guid UserId, GoldWeight Weight, DateTimeOffset OccurredAt) : DomainEvent(OccurredAt);
 public sealed record OrderCancelledDomainEvent(Guid OrderId, Guid UserId, DateTimeOffset OccurredAt) : DomainEvent(OccurredAt);
 
-public sealed class GoldWeight : IComparable<GoldWeight>
+public sealed record GoldWeight : IComparable<GoldWeight>
 {
     public decimal Grams { get; }
     private GoldWeight(decimal grams) => Grams = grams;
@@ -40,7 +40,7 @@ public sealed class Money : IEquatable<Money>
     {
         if (amount < 0 || decimal.Round(amount, 2) != amount)
             throw new DomainRuleViolationException("Money must be non-negative with at most two decimal places.");
-        if (currency.Length != 3 || currency.Any(character => character is < 'A' or > 'Z'))
+        if (string.IsNullOrWhiteSpace(currency) || currency.Length != 3 || currency.Any(character => character is < 'A' or > 'Z'))
             throw new DomainRuleViolationException("Currency must be a three-letter uppercase code.");
         Amount = amount;
         Currency = currency;
@@ -86,7 +86,7 @@ public sealed class GoldWallet
     }
     public static GoldWallet Restore(Guid userId, decimal balanceGrams, long version)
     {
-        if (balanceGrams < 0 || decimal.Round(balanceGrams, 3) != balanceGrams)
+        if (balanceGrams < 0 || decimal.Round(balanceGrams, 3) != balanceGrams || version < 0)
             throw new DomainRuleViolationException("Wallet balance must be non-negative with at most three decimal places.");
         return new GoldWallet(userId, balanceGrams == 0 ? GoldWeight.Zero : GoldWeight.FromGrams(balanceGrams), version);
     }
@@ -197,6 +197,7 @@ public interface IGoldOrderRepository
 {
     Task AddAsync(GoldOrder order, CancellationToken cancellationToken = default);
     Task<GoldOrder?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+    Task UpdateAsync(GoldOrder order, CancellationToken cancellationToken = default) => Task.CompletedTask;
     Task<IReadOnlyList<GoldOrder>> SearchAsync(Guid userId, string? tag, DateTimeOffset? from, DateTimeOffset? to, OrderType? type, CancellationToken cancellationToken = default);
 }
 public interface IGoldWalletRepository
@@ -208,4 +209,6 @@ public interface IDomainEventDispatcher
 {
     Task DispatchAsync(IReadOnlyCollection<IDomainEvent> events, CancellationToken cancellationToken = default);
 }
+
+
 
