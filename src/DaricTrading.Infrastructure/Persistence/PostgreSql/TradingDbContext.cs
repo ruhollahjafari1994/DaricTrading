@@ -1,14 +1,16 @@
-using System.Text.Json;
-using DaricTrading.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace DaricTrading.Infrastructure.Persistence.PostgreSql;
 
+/// <summary>ارتباط مدل برنامه با ذخیره‌سازی و نگاشت داده‌ها را مدیریت می‌کند.</summary>
 public sealed class TradingDbContext(DbContextOptions<TradingDbContext> options) : DbContext(options)
 {
+    /// <summary>مجموعه سفارش‌ها را برای پرس‌وجو و ذخیره با EF Core فراهم می‌کند.</summary>
     public DbSet<OrderDocument> Orders => Set<OrderDocument>();
+    /// <summary>مجموعه کیف پول‌ها را برای پرس‌وجو و ذخیره با EF Core فراهم می‌کند.</summary>
     public DbSet<WalletDocument> Wallets => Set<WalletDocument>();
 
+    /// <summary>نگاشت موجودیت‌ها و قواعد مدل پایگاه داده را پیکربندی می‌کند.</summary>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<OrderDocument>(entity =>
@@ -31,48 +33,4 @@ public sealed class TradingDbContext(DbContextOptions<TradingDbContext> options)
             entity.Property(wallet => wallet.Version).IsConcurrencyToken();
         });
     }
-}
-
-public sealed class OrderDocument
-{
-    public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public int Type { get; set; }
-    public decimal WeightGrams { get; set; }
-    public decimal UnitPrice { get; set; }
-    public string Currency { get; set; } = "IRR";
-    public decimal Fee { get; set; }
-    public decimal TotalAmount { get; set; }
-    public string TagsJson { get; set; } = "[]";
-    public int Status { get; set; }
-    public string? UserNote { get; set; }
-    public DateTimeOffset CreatedAt { get; set; }
-    public DateTimeOffset? SettledAt { get; set; }
-    public long Version { get; set; }
-
-    public static OrderDocument From(GoldOrder order, long version = 0) => new()
-    {
-        Id = order.Id,
-        UserId = order.UserId,
-        Type = (int)order.Type,
-        WeightGrams = order.Weight.Grams,
-        UnitPrice = order.UnitPrice.Amount,
-        Currency = order.UnitPrice.Currency,
-        Fee = order.Fee.Amount,
-        TotalAmount = order.TotalAmount.Amount,
-        TagsJson = JsonSerializer.Serialize(order.Tags.Select(tag => tag.Value)),
-        Status = (int)order.Status,
-        UserNote = order.UserNote,
-        CreatedAt = order.CreatedAt,
-        SettledAt = order.SettledAt,
-        Version = version
-    };
-    public GoldOrder ToDomain() => GoldOrder.Restore(Id, UserId, (OrderType)Type, GoldWeight.FromGrams(WeightGrams), new Money(UnitPrice, Currency), new Money(Fee, Currency), JsonSerializer.Deserialize<string[]>(TagsJson)!.Select(value => new Tag(value)), (OrderStatus)Status, UserNote, CreatedAt, SettledAt);
-}
-
-public sealed class WalletDocument
-{
-    public Guid UserId { get; set; }
-    public decimal BalanceGrams { get; set; }
-    public long Version { get; set; }
 }

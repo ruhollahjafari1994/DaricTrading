@@ -10,8 +10,10 @@ using Xunit;
 
 namespace DaricTrading.API.IntegrationTests;
 
+/// <summary>پاسخ endpointها، validation، health و Swagger را با ذخیره‌سازی حافظه‌ای بررسی می‌کند.</summary>
 public sealed class InMemoryOrdersApiTests
 {
+    /// <summary>ثبت خرید و ویرایش برچسب از مسیرهای نسخه‌بندی‌شده API را بررسی می‌کند.</summary>
     [Fact]
     public async Task BuyAndMetadataUpdate_AreExposedThroughVersionedHttpContracts()
     {
@@ -32,6 +34,7 @@ public sealed class InMemoryOrdersApiTests
         wallet!.BalanceGrams.Should().Be(1.250m);
     }
 
+    /// <summary>بازگشت خطاهای اعتبارسنجی در قالب RFC 7807 را بررسی می‌کند.</summary>
     [Fact]
     public async Task InvalidInput_ReturnsRfc7807FieldErrors()
     {
@@ -45,6 +48,7 @@ public sealed class InMemoryOrdersApiTests
         problem!.RootElement.GetProperty("errors").GetProperty("WeightGrams").GetArrayLength().Should().BeGreaterThan(0);
     }
 
+    /// <summary>بازگشت پاسخ ۴۲۲ هنگام فروش بیش از موجودی را بررسی می‌کند.</summary>
     [Fact]
     public async Task SellWithoutBalance_Returns422ProblemDetails()
     {
@@ -54,6 +58,24 @@ public sealed class InMemoryOrdersApiTests
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
+    /// <summary>بازگشت پاسخ ۴۰۴ برای کیف پول پیدا نشده را بررسی می‌کند.</summary>
+    [Fact]
+    public async Task MissingWallet_ReturnsNotFoundProblemDetails()
+    {
+        using var factory = new InMemoryApiFactory();
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/v1/wallets/{Guid.NewGuid()}/balance");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+
+        var missingOrder = await client.GetAsync($"/api/v1/orders/{Guid.NewGuid()}");
+        missingOrder.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        missingOrder.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+    }
+
+    /// <summary>در دسترس بودن مسیر سلامت و مستندات Swagger را بررسی می‌کند.</summary>
     [Fact]
     public async Task HealthAndSwaggerEndpoints_AreAvailable()
     {
@@ -67,8 +89,10 @@ public sealed class InMemoryOrdersApiTests
         swagger.StatusCode.Should().Be(HttpStatusCode.OK);
         (await swagger.Content.ReadAsStringAsync()).Should().Contain("weightGrams");
     }
+    /// <summary>پیکربندی میزبان تست را طوری تغییر می‌دهد که repository حافظه‌ای جای PostgreSQL را بگیرد.</summary>
     private sealed class InMemoryApiFactory : WebApplicationFactory<Program>
     {
+        /// <summary>میزبان وب آزمون را با خدمات و تنظیمات لازم پیکربندی می‌کند.</summary>
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Development");

@@ -1,8 +1,6 @@
 namespace DaricTrading.Application.Common;
 
-public sealed class BusinessRuleViolationException(string message) : Exception(message);
-public sealed class OptimisticConcurrencyException(string message) : Exception(message);
-
+/// <summary>خطاهای دامنه را در مرز لایه کاربردی به خطاهای مناسب این لایه نگاشت می‌کند.</summary>
 public static class DomainExceptionBoundary
 {
     public static async Task<T> ExecuteAsync<T>(Func<Task<T>> operation)

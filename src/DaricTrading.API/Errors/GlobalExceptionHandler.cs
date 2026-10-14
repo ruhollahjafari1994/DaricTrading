@@ -1,4 +1,3 @@
-using DaricTrading.Application.Orders;
 using DaricTrading.Application.Common;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
@@ -6,8 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DaricTrading.API.Errors;
 
+/// <summary>خطاهای برنامه را به پاسخ‌های استاندارد HTTP و ProblemDetails تبدیل می‌کند.</summary>
 public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
 {
+    /// <summary>خطا را بررسی و در صورت پشتیبانی به پاسخ HTTP تبدیل می‌کند.</summary>
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         var result = exception switch

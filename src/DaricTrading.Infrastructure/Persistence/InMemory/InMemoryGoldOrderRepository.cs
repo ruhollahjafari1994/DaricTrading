@@ -1,35 +1,33 @@
 using System.Collections.Concurrent;
 using DaricTrading.Domain;
 
-namespace DaricTrading.Infrastructure;
+namespace DaricTrading.Infrastructure.Persistence.InMemory;
 
-public sealed class InMemoryGoldWalletRepository : IGoldWalletRepository
-{
-    private readonly ConcurrentDictionary<Guid, GoldWallet> _wallets = new();
-    public Task<GoldWallet> GetOrCreateAsync(Guid userId, CancellationToken cancellationToken = default) =>
-        Task.FromResult(_wallets.GetOrAdd(userId, id => new GoldWallet(id)));
-    public Task SaveAsync(GoldWallet wallet, CancellationToken cancellationToken = default) => Task.CompletedTask;
-}
-
+/// <summary>aggregate سفارش را در دیکشنری thread-safe نگه می‌دارد و عملیات جست‌وجوی MVP را اجرا می‌کند.</summary>
 public sealed class InMemoryGoldOrderRepository : IGoldOrderRepository
 {
+    /// <summary>مخزن یا سرویس مورد استفاده برای دسترسی به سفارش‌ها.</summary>
     private readonly ConcurrentDictionary<Guid, GoldOrder> _orders = new();
+    /// <summary>سفارش را با شناسه‌اش به صورت اتمیک اضافه می‌کند و شناسه تکراری را رد می‌کند.</summary>
     public Task AddAsync(GoldOrder order, CancellationToken cancellationToken = default)
     {
         if (!_orders.TryAdd(order.Id, order)) throw new InvalidOperationException("Duplicate order id.");
         return Task.CompletedTask;
     }
+    /// <summary>نسخه موجود سفارش را با مقدار جدید جایگزین می‌کند و نبودن شناسه را گزارش می‌دهد.</summary>
     public Task UpdateAsync(GoldOrder order, CancellationToken cancellationToken = default)
     {
         if (!_orders.ContainsKey(order.Id)) throw new KeyNotFoundException($"Order '{order.Id}' was not found.");
         _orders[order.Id] = order;
         return Task.CompletedTask;
     }
+    /// <summary>سفارش را از ConcurrentDictionary می‌خواند و برای شناسه ناشناخته null می‌دهد.</summary>
     public Task<GoldOrder?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         _orders.TryGetValue(id, out var order);
         return Task.FromResult(order);
     }
+    /// <summary>سفارش‌های کاربر را با وضعیت تسویه، برچسب، تاریخ و نوع فیلتر می‌کند.</summary>
     public Task<IReadOnlyList<GoldOrder>> SearchAsync(Guid userId, string? tag, DateTimeOffset? from, DateTimeOffset? to, OrderType? type, CancellationToken cancellationToken = default)
     {
         IReadOnlyList<GoldOrder> result = _orders.Values
@@ -41,16 +39,5 @@ public sealed class InMemoryGoldOrderRepository : IGoldOrderRepository
             .OrderByDescending(order => order.CreatedAt)
             .ToArray();
         return Task.FromResult(result);
-    }
-}
-
-public sealed class InMemoryDomainEventDispatcher : IDomainEventDispatcher
-{
-    private readonly ConcurrentQueue<IDomainEvent> _events = new();
-    public IReadOnlyCollection<IDomainEvent> PublishedEvents => _events.ToArray();
-    public Task DispatchAsync(IReadOnlyCollection<IDomainEvent> events, CancellationToken cancellationToken = default)
-    {
-        foreach (var domainEvent in events) _events.Enqueue(domainEvent);
-        return Task.CompletedTask;
     }
 }

@@ -41,4 +41,5 @@ app.MapHealthChecks("/health");
 app.MapControllers();
 app.Run();
 
+/// <summary>نوع عمومی برنامه را در دسترس WebApplicationFactory برای آزمون‌های یکپارچگی قرار می‌دهد.</summary>
 public partial class Program { }

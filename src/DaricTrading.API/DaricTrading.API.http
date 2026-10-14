@@ -1,6 +1,22 @@
 @DaricTrading.API_HostAddress = http://localhost:5175
+@UserId = 10000000-0000-0000-0000-000000000001
 
-GET {{DaricTrading.API_HostAddress}}/weatherforecast/
+### Create a buy order
+POST {{DaricTrading.API_HostAddress}}/api/v1/orders/buy
+Content-Type: application/json
+
+{
+  "userId": "{{UserId}}",
+  "weightGrams": 1.250,
+  "unitPrice": 3500000,
+  "fee": 5000,
+  "tags": ["پس‌انداز_بلندمدت"]
+}
+
+### Read wallet balance
+GET {{DaricTrading.API_HostAddress}}/api/v1/wallets/{{UserId}}/balance
 Accept: application/json
 
-###
+### Search settled orders
+GET {{DaricTrading.API_HostAddress}}/api/v1/orders?userId={{UserId}}&orderType=Buy
+Accept: application/json

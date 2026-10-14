@@ -8,11 +8,13 @@ The default runtime uses thread-safe in-memory repositories so the API starts wi
 
 ## Architecture
 
-- **Domain** contains `GoldWeight`, `Money`, `Tag`, wallet/order aggregates, domain exceptions/events, and repository ports. It has no ASP.NET Core or persistence dependency.
-- **Application** contains separate buy, sell, get, search, update-tags, cancel, and wallet-balance use-case handlers plus FluentValidation validators and API-independent DTOs.
-- **Infrastructure** contains concurrent in-memory repositories, PostgreSQL/EF Core repositories and migrations, the clock, and domain-event dispatch adapters.
-- **API** contains versioned HTTP contracts/controllers, Swagger examples, health checks, and the global RFC 7807 exception handler. API contracts do not expose Domain types.
+- **Domain** groups aggregate roots/entities under `Entities`, financial value objects under `ValueObjects`, enums, domain events/exceptions, and repository ports into separate files. It has no ASP.NET Core or persistence dependency.
+- **Application** groups each command/query handler and contract in its own file under `Orders/Commands` or `Orders/Queries`; validators and wallet use cases are separate too. These use cases depend on Domain ports, not infrastructure implementations.
+- **Infrastructure** keeps each persistence adapter in its own file under `Persistence/InMemory` or `Persistence/PostgreSql`, alongside EF Core mappings and migrations.
+- **API** keeps each HTTP request/response contract separate from controllers. It also contains Swagger examples, health checks, and the global RFC 7807 exception handler. API contracts do not expose Domain types.
 - **Tests** contains domain invariant tests, in-memory API integration tests, and PostgreSQL Testcontainers end-to-end tests.
+
+This organization keeps files focused on one primary type or use case, makes dependencies easy to trace, and lets reviewers inspect domain rules separately from HTTP and storage concerns.
 
 ## HTTP endpoints
 
@@ -43,13 +45,13 @@ Invalid request fields return `400 ValidationProblemDetails`, missing orders ret
 
 ## ADR 01: Financial precision
 
-All financial calculations use `decimal`; binary floating-point is not used. Gold weights are grams and are accepted only when positive and exact to at most three decimal places (one milligram / سوت). `Money` is non-negative, requires an uppercase three-letter currency code, and allows at most two decimal places. The gross value is calculated as `weight × price-per-gram`, rounded to the currency precision using midpoint-to-even; buy fees are added and sell fees are subtracted. A sell whose fee exceeds gross proceeds is rejected. Settled order financial fields have private setters and no mutation methods; only tags and the user note have an update operation.
+All financial calculations use `decimal`; binary floating-point is not used. Gold weights are grams and are accepted only when positive and exact to at most three decimal places (one milligram / سوت). `Money` is non-negative, supports the ISO codes `IRR`, `USD`, `EUR`, and `GBP`, and allows at most two decimal places. Their supported numeric ranges match the PostgreSQL `numeric(18,3)` and `numeric(18,2)` columns so domain-valid values cannot fail later because of storage precision. The gross value is calculated as `weight × price-per-gram`, rounded to the currency precision using midpoint-to-even; buy fees are added and sell fees are subtracted. A sell whose fee exceeds gross proceeds is rejected. Settled order financial fields have private setters and no mutation methods; only tags and the user note have an update operation.
 
 ## ADR 02: Concurrency and persistence
 
-The in-memory adapter uses `ConcurrentDictionary` for repository access and a lock inside each wallet aggregate for balance mutations. Concurrent sell operations serialize at the wallet; insufficient funds cannot drive a balance below zero. This storage is process-local and is lost on restart, so it is suitable for the single-process MVP only.
+The in-memory adapter uses `ConcurrentDictionary` for repository access and aggregate-level locks for wallet balance changes and order metadata/state transitions. Concurrent sell operations serialize at the wallet; insufficient funds cannot drive a balance below zero. This storage is process-local and is lost on restart, so it is suitable for the single-process MVP only.
 
-The PostgreSQL adapter stores order and wallet snapshots through EF Core. Wallet/order version columns are optimistic concurrency tokens. The wallet change and order insert share a scoped `DbContext` and are committed by one `SaveChanges` transaction, preventing a failed sell from persisting a partial order or negative balance. PostgreSQL migrations are applied at API startup. Set `Persistence:Provider=PostgreSql` and `ConnectionStrings:Trading` to use it outside Docker Compose.
+The PostgreSQL adapter stores order and wallet snapshots through EF Core persistence documents; mapping to and from the Domain aggregates is explicit, keeping EF Core out of Domain. A scoped `IUnitOfWork` commits wallet and order changes with one `SaveChanges` transaction, preventing a failed sell from persisting a partial order or negative balance. Wallet/order version columns are optimistic concurrency tokens; conflicting updates and concurrent first-wallet inserts become `409 Conflict` so the caller can reload and retry. PostgreSQL migrations are applied at API startup. Set `Persistence:Provider=PostgreSql` and `ConnectionStrings:Trading` to use it outside Docker Compose.
 
 Domain events are collected by aggregates and dispatched after a successful repository write. The current adapters log events for demonstration; a durable outbox is a production requirement if event delivery must survive process failure.
 

@@ -4,8 +4,10 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace DaricTrading.API;
 
+/// <summary>نمونه درخواست و پاسخ را به schemaهای نمایشی Swagger اضافه می‌کند.</summary>
 public sealed class TradingExamplesSchemaFilter : ISchemaFilter
 {
+    /// <summary>تنظیمات مربوط به این گسترش‌دهنده را روی طرح OpenAPI اعمال می‌کند.</summary>
     public void Apply(OpenApiSchema schema, SchemaFilterContext context)
     {
         if (context.Type == typeof(Contracts.CreateBuyOrderRequest) || context.Type == typeof(Contracts.CreateSellOrderRequest))
